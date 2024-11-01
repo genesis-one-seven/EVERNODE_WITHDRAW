@@ -93,7 +93,9 @@ const monitor_balance = async () => {
 
   logVerbose("accounts = " + allAccounts.length);
   for (const account of allAccounts) {
+
     if (account) {
+      logVerbose("Checking account " + account);
       const { account_data } = await client.send({ command: "account_info", account: account });
 
       var sourceData = await client.send({ command: "account_info", account: xahSourceAccount });
@@ -261,10 +263,10 @@ const transfer_funds = async () => {
 
         //check just the EVRs balance is > 0 if not go to start of for loop with continue
         if (balance <= minimum_evr_transfer) {
-          logVerbose('# EVR Balance is below the minumum required to send the funds for account ' + account);
-          continue;
+          logVerbose('# EVR Balance is below the minumum required to send the funds for account ' + account);          continue;
         }
 
+        //balance = balance - 10;
 
         //Destination Adress and TAG set in.env file
         const tag = process.env.tag;
