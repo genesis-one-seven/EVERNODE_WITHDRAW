@@ -263,7 +263,7 @@ const transfer_funds = async () => {
 
         //check just the EVRs balance is > 0 if not go to start of for loop with continue
         if (balance <= minimum_evr_transfer) {
-          logVerbose('# EVR Balance is below the minumum required to send the funds for account ' + account);          continue;
+          logVerbose('# EVR Balance is below the minumum required to send the funds for account ' + account); continue;
         }
 
         //balance = balance - 10;
@@ -353,35 +353,37 @@ async function checkAccountHeartBeat(account, accountIndex) {
       marker = response?.marker === marker ? null : response?.marker
       // It gets the last 5 transactions and looks for the last heartbeat
       var i = 0;
-      for (var tIndex = 0; tIndex < response.transactions.length; tIndex++) {
-        var transaction = response.transactions[tIndex];
-        ledgerIndex = transaction.tx.ledger_index - 1;
-        logVerbose(JSON.stringify(transaction.tx));
-        logVerbose(tIndex + " " + 2 + " new ledgerIndex = " + ledgerIndex);
-        var utcMilliseconds = 1000 * (transaction.tx.date + 946684800);
-        var transactionDate = new Date(0); // The 0 there is the key, which sets the date to the epoch
-        var date = new Date();
-        var now_utc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(),
-          date.getUTCDate(), date.getUTCHours(),
-          date.getUTCMinutes(), date.getUTCSeconds());
-        if (now_utc - utcMilliseconds > 1000 * 60 * minutes_from_last_heartbeat_alert_threshold) {
-          consoleLog("Handling failure for too old heartbeat transaction, account failed = " + accountFailed);
-          await handleFailure(account, accountFailed, filePath, accountIndex);
-          return;
-        }
-        if (transaction.tx.Destination == heartbeatAccount) {
-          //consoleLog("System running regularly " + account + "");
-          if (fs.existsSync(filePath)) {
-            await sendSuccess(account, accountIndex);
-            fs.rmSync(filePath);
+      if (response.transactions != undefined) {
+        for (var tIndex = 0; tIndex < response.transactions.length; tIndex++) {
+          var transaction = response.transactions[tIndex];
+          ledgerIndex = transaction.tx.ledger_index - 1;
+          logVerbose(JSON.stringify(transaction.tx));
+          logVerbose(tIndex + " " + 2 + " new ledgerIndex = " + ledgerIndex);
+          var utcMilliseconds = 1000 * (transaction.tx.date + 946684800);
+          var transactionDate = new Date(0); // The 0 there is the key, which sets the date to the epoch
+          var date = new Date();
+          var now_utc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(),
+            date.getUTCDate(), date.getUTCHours(),
+            date.getUTCMinutes(), date.getUTCSeconds());
+          if (now_utc - utcMilliseconds > 1000 * 60 * minutes_from_last_heartbeat_alert_threshold) {
+            consoleLog("Handling failure for too old heartbeat transaction, account failed = " + accountFailed);
+            await handleFailure(account, accountFailed, filePath, accountIndex);
+            return;
           }
+          if (transaction.tx.Destination == heartbeatAccount) {
+            //consoleLog("System running regularly " + account + "");
+            if (fs.existsSync(filePath)) {
+              await sendSuccess(account, accountIndex);
+              fs.rmSync(filePath);
+            }
+            return;
+          }
+        }
+        if (response.transactions.length < 5) {
+          consoleLog("Handling failure for no heartbeat transactions, account failed = " + accountFailed);
+          await handleFailure(account, accountFailed, filePath);
           return;
         }
-      }
-      if (response.transactions.length < 5) {
-        consoleLog("Handling failure for no heartbeat transactions, account failed = " + accountFailed);
-        await handleFailure(account, accountFailed, filePath);
-        return;
       }
     }
   }
