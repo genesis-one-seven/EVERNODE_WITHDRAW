@@ -9,7 +9,6 @@ const { createTransport } = require('nodemailer');
 const path = require('path');
 const { ALPN_ENABLED } = require('constants');
 const { Console, log } = require('console');
-const { json } = require('express');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') })
 
 const verboseLog = process.env.verboseLog == "true";
