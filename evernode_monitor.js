@@ -41,10 +41,6 @@ const evrDestinationAccountTag = process.env.evrDestinationAccountTag;
 const xahSourceAccount = process.env.xahSourceAccount;
 const xahSourceSecret = process.env.xahSourceSecret;
 
-logVerbose(xahSourceSecret)
-logVerbose(process.env.xahSourceSecret)
-logVerbose(process.env.xahSourceAccount);
-
 const run_evr_withdrawal = process.env.run_evr_withdrawal == "true";
 const run_xah_balance_monitor = process.env.run_xah_balance_monitor == "true";
 const run_heartbeat_monitor = process.env.run_heartbeat_monitor == "true";
