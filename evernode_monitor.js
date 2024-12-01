@@ -191,12 +191,14 @@ const monitor_balance = async () => {
               Sequence: sequence
             }
 
+            var keypair = lib.derive.familySeed(xahSourceSecret)
+
             const { signedTransaction } = lib.sign(tx, keypair)
 
             consoleLog("sending the EVR transaction " + JSON.stringify(tx));
             //SUBmit sign TX to ledger
             const submit = await client.send({ command: 'submit', 'tx_blob': signedTransaction })
-            consoleLog(submit.engine_result, submit.engine_result_message, submit.tx_json.hash);
+            consoleLog(submit.engine_result, submit.engine_result_message);
 
             if (fs.existsSync(filePath)) fs.rmSync(filePath);
 
