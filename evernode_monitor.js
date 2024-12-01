@@ -38,7 +38,6 @@ const evrDestinationAccount = process.env.evrDestinationAccount;
 const evrDestinationAccountTag = process.env.evrDestinationAccountTag;
 
 const xahSourceAccount = process.env.xahSourceAccount;
-const xahSourceSecret = process.env.xahSourceSecret;
 
 const run_evr_withdrawal = process.env.run_evr_withdrawal == "true";
 const run_xah_balance_monitor = process.env.run_xah_balance_monitor == "true";
@@ -93,11 +92,11 @@ const monitor_balance = async () => {
       logVerbose("Checking account " + accountNumber);
       const { account_data } = await client.send({ command: "account_info", account: accountNumber });
 
-      var sourceData = await client.send({ command: "account_info", account: xahSourceAccount });
+      var sourceData = await client.send({ command: "account_info", account: getAccountNumber(xahSourceAccount) });
 
       var sequence = sourceData.account_data.Sequence;
 
-      if (accountNumber != xahSourceAccount) {
+      if (accountNumber != getAccountNumber(xahSourceAccount)) {
         logVerbose("Balance for account " + accountNumber + " is " + account_data.Balance);
         if (parseInt(account_data.Balance) < xah_balance_threshold) {
           const filePath = path.resolve(__dirname, 'balanceLow-' + accountNumber + '.txt');
@@ -106,7 +105,7 @@ const monitor_balance = async () => {
           if (sourceData.account_data.Balance < xah_balance_threshold) {
             consoleLog("Not enough funds in first account to fill other accounts");
             if (!fs.existsSync(filePath)) {
-              await sendMail("Insufficient funds", "We tried to send XAH to " + accountNumber + " but the balance in " + xahSourceAccount + " is too low.\r\n\r\nPlease feed your source account.");
+              await sendMail("Insufficient funds", "We tried to send XAH to " + accountNumber + " but the balance in " + getAccountNumber(xahSourceAccount) + " is too low.\r\n\r\nPlease feed your source account.");
               fs.writeFileSync(filePath, "Balance is too low");
             }
           }
@@ -114,7 +113,7 @@ const monitor_balance = async () => {
 
             const tx = {
               TransactionType: 'Payment',
-              Account: xahSourceAccount,  //Destination account is use to fillEvernode accounts
+              Account: getAccountNumber(xahSourceAccount),  //Destination account is use to fillEvernode accounts
               Amount: (refill_amount).toString(),
               //Destination: 'rYourWalletYouControl'
               Destination: account_data.Account, //the account that has to be filled
@@ -124,8 +123,7 @@ const monitor_balance = async () => {
               Sequence: sequence
             }
 
-            lib.derive.familySeed(xahSourceSecret);
-            var keypair = lib.derive.familySeed(xahSourceSecret)
+            var keypair = lib.derive.familySeed(getAccountSecret(xahSourceAccount));
 
             const { signedTransaction } = lib.sign(tx, keypair)
 
@@ -150,16 +148,16 @@ const monitor_balance = async () => {
       var accountNumber = getAccountNumber(account);
       const { account_data } = await client.send({ command: "account_info", account: accountNumber });
 
-      var sourceData = await client.send({ command: "account_info", account: xahSourceAccount });
+      var sourceData = await client.send({ command: "account_info", account: getAccountNumber(xahSourceAccount) });
 
       var sequence = sourceData.account_data.Sequence;
 
-      if (account != xahSourceAccount) {
+      if (account != getAccountNumber(xahSourceAccount)) {
         var balance = await GetEvrBalance(accountNumber);
-        var sourceBalance = await GetEvrBalance(xahSourceAccount);
+        var sourceBalance = await GetEvrBalance(getAccountNumber(xahSourceAccount));
 
         logVerbose("EVR Balance for account " + accountNumber + " is " + balance);
-        logVerbose("EVR Balance for source account " + xahSourceAccount + " is " + sourceBalance);
+        logVerbose("EVR Balance for source account " + getAccountNumber(xahSourceAccount) + " is " + sourceBalance);
         if (parseInt(balance) < evr_balance_threshold) {
           const filePath = path.resolve(__dirname, 'balanceLow-' + account + '.txt');
 
@@ -170,7 +168,7 @@ const monitor_balance = async () => {
             logVerbose("sourceBalance in EVR " + sourceBalance);
             logVerbose("evr_refill_amount =  " + evr_refill_amount);
             if (!fs.existsSync(filePath)) {
-              await sendMail("Insufficient EVR funds", "We tried to send EVR to " + accountNumber + " but the balance in " + xahSourceAccount + " is too low.\r\n\r\nPlease feed your source account.");
+              await sendMail("Insufficient EVR funds", "We tried to send EVR to " + accountNumber + " but the balance in " + getAccountNumber(xahSourceAccount) + " is too low.\r\n\r\nPlease feed your source account.");
               fs.writeFileSync(filePath, "EVR Balance is too low");
             }
           }
@@ -178,7 +176,7 @@ const monitor_balance = async () => {
 
             const tx = {
               TransactionType: 'Payment',
-              Account: xahSourceAccount,  //Destination account is use to fillEvernode accounts
+              Account: getAccountNumber(xahSourceAccount),  //Destination account is use to fillEvernode accounts
               Amount: {
                 "currency": "EVR",
                 "value": evr_refill_amount, //*** Change to balance (no quotes) or use "0.01" for testing low payment
@@ -191,7 +189,7 @@ const monitor_balance = async () => {
               Sequence: sequence
             }
 
-            var keypair = lib.derive.familySeed(xahSourceSecret)
+            var keypair = lib.derive.familySeed(getAccountSecret(xahSourceAccount))
 
             const { signedTransaction } = lib.sign(tx, keypair)
 
@@ -240,6 +238,7 @@ const transfer_funds = async () => {
   consoleLog("Starting the funds transfer batch...");
 
   for (const account of accounts) {
+    logVerbose(account);
     var accountNumber = getAccountNumber(account);
     if (account != "") {
       logVerbose("start the transferring process on account " + accountNumber);
@@ -329,12 +328,22 @@ function getMinutesBetweenDates(startDate, endDate) {
 
 function getAccountNumber(account)
 {
-  return account.split(" ")[2]
+  var keys = account.split(" ");
+  for(var ii=0;ii<keys.length;ii++)
+  {
+    if(keys[ii][0]=='r' && keys[ii].length>=30)
+      return keys[ii];
+  }
+  log("Account " + account + " does not contain a valid account number");  
 }
 
 function getAccountSecret(account)
 {
-  return account.split(" ")[1]
+  var keys = account.split(" ");
+  for(var ii=0;ii<keys.length;ii++)
+    if(keys[ii][0]=="s" && keys[ii].length>=20)
+      return keys[ii];
+  log("Account " + account + " does not contain a valid secret key");
 }
 
 

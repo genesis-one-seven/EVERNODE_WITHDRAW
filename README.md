@@ -17,22 +17,13 @@ The EVR destinaton account can be an exchange.
 
 ## 1. Withdraw EVRs
 
-This script cycles through your accounts, gets their EVR balance and sends all of the EVR balance to your first EVR account. 
-This script uses a single signing address, that requires the same Regular Key is set on all accounts.
- 
-To set the Regular Key for a node, open the Linux terminal and run the following command: 
+This script cycles through your accounts, gets their EVR balance and sends all the EVRs balance to the configured EVR destination account. 
 
-```
-evernode regkey set rWalletAddressThatYouOwnThatCanSignTransactions
-```
-
-Setting the same regular key on a Xahau account list will let you sign the transaction for all of them using the same secret (doc: https://docs.xahau.network/technical/protocol-reference/transactions/transaction-types/setregularkey )
-
-## 2. Monitor the heartbeat
+## 2. Monitor the heartbeat (not always working correctly)
 
 This script cycles through your accounts and checks whether each account sent a heartbeat transaction in the last N (configurable) minutes. In case no heartbeat is found an alert email is sent to the configured email address. The alert email is repeated after N (configurable) minutes in case the down is not solved. A restore email is sent as soon as the issue is solved.
 
-## 3. Send XAH to the account if balance is too low
+## 3. Send XAH to the account (and EVR to the reputation account) if balance is too low
 
 As a minimum numer of XAH is required to run an evernode host, this script sends N (configurable) XAH from the first account when the balance is below a certain threshold (configurable). In case the first account balance is too low to send XAH, an alert email is sent to the configured email. This means you will only have to check the first account XAH balance and you can ignore the others that are automatically filled when needed.
 
